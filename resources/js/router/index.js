@@ -4,6 +4,7 @@ import ProductsView from '../views/ProductsView.vue';
 import CartView from '../views/CartView.vue';
 import CheckoutView from '../views/CheckoutView.vue';
 import ProductDetailView from '../views/ProductDetailView.vue';
+import AboutView from '../views/AboutView.vue';
 import AdminLayout from '../views/admin/AdminLayout.vue';
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue';
 import AdminLoginView from '../views/admin/AdminLoginView.vue';
@@ -20,6 +21,7 @@ const router = createRouter({
         { path: '/', name: 'home', component: ProductsView },
         { path: '/products', name: 'products', component: ProductsView },
         { path: '/products/:slug', name: 'products.show', component: ProductDetailView },
+        { path: '/about', name: 'about', component: AboutView },
         { path: '/jar', name: 'jar', component: CartView },
         { path: '/cart', name: 'cart', component: CartView },
         { path: '/checkout', name: 'checkout', component: CheckoutView },

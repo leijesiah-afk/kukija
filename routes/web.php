@@ -1,11 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 
 $basePath = trim(parse_url(config('app.url'), PHP_URL_PATH) ?? '', '/');
 
 if ($basePath !== '') {
-    Route::prefix($basePath . '/api')->middleware('api')->group(function () {
+    Route::prefix($basePath . '/api')->middleware('api')->withoutMiddleware([VerifyCsrfToken::class])->group(function () {
         Route::get('/health', function () {
             return response()->json(['status' => 'ok']);
         });

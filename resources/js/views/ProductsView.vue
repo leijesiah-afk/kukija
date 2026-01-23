@@ -4,25 +4,36 @@
             <div class="carousel-header" tabindex="0" @keydown.left.prevent="prevCookie" @keydown.right.prevent="nextCookie" @mouseenter="pauseCarousel" @mouseleave="resumeCarousel">
                 <button class="carousel-arrow" type="button" @click="prevCookie">&#8592;</button>
                 <div id="cookieDisplay">
-                    <template v-if="bestProduct">
-                        <RouterLink :to="`/products/${bestProduct.slug}`" style="display:block;">
-                            <img :src="imageSrc(bestProduct)" :alt="bestProduct.name" />
-                        </RouterLink>
-                        <div style="max-width:520px;">
-                            <div
-                                style="font-family:'Fredoka',cursive;font-size:2rem;font-weight:700;margin-bottom:4px;letter-spacing:1px;"
-                            >
-                                {{ bestProduct.name }}
-                            </div>
-                            <div style="font-family:'Fredoka',cursive;font-size:1rem;opacity:0.9;line-height:1.45;">
-                                {{ bestProduct.description || 'A best seller cookie you will love.' }}
-                            </div>
-                            <div style="font-family:'Kalam',cursive;font-size:1.2rem;color:var(--gold);margin-top:10px;font-weight:800;">
-                                PHP {{ Number(bestProduct.price).toFixed(2) }}
+                    <Transition name="best-seller" mode="out-in">
+                        <div v-if="bestProduct" :key="bestProduct.id" style="display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap;">
+                            <RouterLink :to="`/products/${bestProduct.slug}`" style="display:block;">
+                                <img :src="imageSrc(bestProduct)" :alt="bestProduct.name" />
+                            </RouterLink>
+                            <div style="max-width:520px;">
+                                <div
+                                    style="font-family:'Fredoka',cursive;font-size:2rem;font-weight:700;margin-bottom:4px;letter-spacing:1px;"
+                                >
+                                    {{ bestProduct.name }}
+                                </div>
+                                <div style="font-family:'Fredoka',cursive;font-size:1rem;opacity:0.9;line-height:1.45;">
+                                    {{ bestProduct.description || 'A best seller cookie you will love.' }}
+                                </div>
+                                <div style="font-family:'Kalam',cursive;font-size:1.2rem;color:var(--gold);margin-top:10px;font-weight:800;">
+                                    PHP {{ Number(bestProduct.price).toFixed(2) }}
+                                </div>
+                                <button
+                                    class="add-to-jar-btn"
+                                    style="margin-top:14px;"
+                                    :disabled="cart.loading || bestProduct.stock <= 0"
+                                    type="button"
+                                    @click="addFromCarousel(bestProduct)"
+                                >
+                                    {{ bestProduct.stock <= 0 ? 'Out of Stock' : 'Add to Jar' }}
+                                </button>
                             </div>
                         </div>
-                    </template>
-                    <div v-else style="font-family:'Fredoka',cursive;color:var(--choco);">No best sellers available.</div>
+                    </Transition>
+                    <div v-if="!bestProduct" style="font-family:'Fredoka',cursive;color:var(--choco);">No best sellers available.</div>
                 </div>
                 <button class="carousel-arrow" type="button" @click="nextCookie">&#8594;</button>
             </div>
@@ -126,21 +137,12 @@
                 </RouterLink>
                 <div class="product-price">PHP {{ Number(p.price).toFixed(2) }}</div>
                 <button
-                    v-if="canUseJar"
                     class="add-to-jar-btn"
                     :disabled="cart.loading || p.stock <= 0"
-                    @click="add(p)"
+                    type="button"
+                    @click="addOrPrompt(p)"
                 >
                     {{ p.stock <= 0 ? 'Out of Stock' : 'Add to Jar' }}
-                </button>
-                <button
-                    v-else
-                    class="add-to-jar-btn"
-                    style="opacity:0.75;filter:grayscale(20%);"
-                    type="button"
-                    @click="promptLogin"
-                >
-                    Sign in to start your jar
                 </button>
             </div>
         </section>
@@ -296,11 +298,24 @@ function filterBtnStyle(slug) {
 }
 
 async function add(p) {
+    if (cart.loading) return;
     await cart.addItem(p.id, 1);
 }
 
-function promptLogin() {
-    window.dispatchEvent(new Event('kukija:open-login'));
+async function addOrPrompt(p) {
+    if (!canUseJar.value) {
+        promptSignup();
+        return;
+    }
+    await add(p);
+}
+
+async function addFromCarousel(p) {
+    await addOrPrompt(p);
+}
+
+function promptSignup() {
+    window.dispatchEvent(new Event('kukija:open-signup'));
 }
 
 function imageSrc(p) {
@@ -308,3 +323,15 @@ function imageSrc(p) {
     return `${baseUrl}logo.png`;
 }
 </script>
+
+<style scoped>
+ .best-seller-enter-active,
+ .best-seller-leave-active {
+     transition: opacity 260ms ease, transform 260ms ease;
+ }
+ .best-seller-enter-from,
+ .best-seller-leave-to {
+     opacity: 0;
+     transform: translateY(10px);
+ }
+</style>

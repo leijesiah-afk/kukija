@@ -12,23 +12,48 @@
             <div class="product-card" style="align-items:flex-start;width:100%;padding:28px 22px;">
                 <div class="product-title" style="text-align:left;">Delivery Details</div>
 
-                <form style="width:100%;margin-top:14px;" @submit.prevent="openConfirm">
+                <form id="kukijaCheckoutForm" style="width:100%;margin-top:14px;">
                     <div class="checkout-form-grid">
                         <div>
                             <div style="font-family:'Kalam',cursive;font-size:1.05rem;">Full name</div>
                             <input id="checkout_name" name="name" autocomplete="name" v-model="name" required type="text" />
+                            <div class="kukija-field-error error-msg" data-error-for="name" style="display:none;margin-top:10px;"></div>
                         </div>
                         <div>
                             <div style="font-family:'Kalam',cursive;font-size:1.05rem;">Email</div>
                             <input id="checkout_email" name="email" autocomplete="email" v-model="email" required type="email" />
+                            <div class="kukija-field-error error-msg" data-error-for="email" style="display:none;margin-top:10px;"></div>
                         </div>
                         <div class="checkout-form-full">
                             <div style="font-family:'Kalam',cursive;font-size:1.05rem;">Address</div>
                             <input id="checkout_address" name="address" autocomplete="street-address" v-model="address" required type="text" />
+                            <div class="kukija-field-error error-msg" data-error-for="address" style="display:none;margin-top:10px;"></div>
                         </div>
                         <div class="checkout-form-full">
                             <div style="font-family:'Kalam',cursive;font-size:1.05rem;">Phone (optional)</div>
                             <input id="checkout_phone" name="phone" autocomplete="tel" v-model="phone" type="tel" />
+                            <div class="kukija-field-error error-msg" data-error-for="phone" style="display:none;margin-top:10px;"></div>
+                        </div>
+                        <div class="checkout-form-full">
+                            <div style="font-family:'Kalam',cursive;font-size:1.05rem;">Payment Method</div>
+                            <select id="checkout_payment_method" name="payment_method" v-model="paymentMethod" required>
+                                <option value="">Select a payment method</option>
+                                <option value="gcash">GCash</option>
+                                <option value="cash">Cash</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                            </select>
+                            <div class="kukija-field-error error-msg" data-error-for="payment_method" style="display:none;margin-top:10px;"></div>
+                        </div>
+                        <div v-if="paymentMethod && paymentMethod !== 'cash'" class="checkout-form-full">
+                            <div style="font-family:'Kalam',cursive;font-size:1.05rem;">Reference / Account</div>
+                            <input
+                                id="checkout_payment_reference"
+                                name="payment_reference"
+                                v-model="paymentReference"
+                                type="text"
+                                :placeholder="paymentMethod === 'gcash' ? 'GCash reference number' : 'Bank name + reference'"
+                            />
+                            <div class="kukija-field-error error-msg" data-error-for="payment_reference" style="display:none;margin-top:10px;"></div>
                         </div>
                     </div>
 
@@ -50,6 +75,8 @@
                         Payment successful (dummy). Order:
                         <b>{{ paid.order?.order_number }}</b>
                     </div>
+
+                    <div class="kukija-form-error error-msg" style="display:none;margin-top:14px;"></div>
                 </form>
             </div>
 
@@ -79,7 +106,15 @@
             <button class="close-modal" type="button" @click="closeConfirm">×</button>
             <h2>Confirm Payment</h2>
             <div style="text-align:center; font-family:'Fredoka',cursive; margin-bottom:12px;">
-                This is a dummy payment for demo.
+                Confirm your payment details.
+            </div>
+            <div style="text-align:center; font-family:'Fredoka',cursive; margin-bottom:10px;">
+                Method:
+                <b>{{ paymentMethod ? paymentMethod.replace('_', ' ').toUpperCase() : '—' }}</b>
+            </div>
+            <div v-if="paymentMethod && paymentMethod !== 'cash'" style="text-align:center; font-family:'Kalam',cursive; margin-bottom:10px; opacity:0.9;">
+                Ref:
+                <b>{{ paymentReference || '—' }}</b>
             </div>
             <div style="text-align:center; font-family:'Kalam',cursive; font-size:1.2rem; color:var(--gold); font-weight:800;">
                 PHP {{ Number(cart.total).toFixed(2) }}
@@ -95,7 +130,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useCartStore } from '../stores/cart';
 
 const cart = useCartStore();
@@ -104,11 +139,22 @@ const name = ref('');
 const email = ref('');
 const address = ref('');
 const phone = ref('');
+const paymentMethod = ref('');
+const paymentReference = ref('');
 const paid = ref(null);
 const showConfirm = ref(false);
 
+const checkoutValidHandler = () => {
+    openConfirm();
+};
+
 onMounted(async () => {
     await cart.fetch();
+    window.addEventListener('kukija:checkout-valid', checkoutValidHandler);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('kukija:checkout-valid', checkoutValidHandler);
 });
 
 function openConfirm() {
@@ -127,6 +173,8 @@ async function pay() {
         email: email.value,
         address: address.value,
         phone: phone.value || null,
+        payment_method: paymentMethod.value,
+        payment_reference: paymentReference.value || null,
     });
 }
 

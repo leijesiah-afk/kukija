@@ -111,6 +111,7 @@ function imageSrc(p) {
 
 async function addToJar() {
     if (!product.value) return;
+    if (cart.loading) return;
     await cart.addItem(product.value.id, 1);
     added.value = true;
 }

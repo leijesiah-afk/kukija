@@ -24,7 +24,18 @@ class CheckoutController extends Controller
             'email' => ['required', 'email', 'max:255'],
             'address' => ['required', 'string', 'max:2000'],
             'phone' => ['nullable', 'string', 'max:30'],
+            'payment_method' => ['required', 'in:gcash,cash,bank_transfer'],
+            'payment_reference' => ['nullable', 'string', 'max:255'],
         ]);
+
+        if ($validated['payment_method'] !== 'cash' && empty($validated['payment_reference'])) {
+            return response()->json([
+                'message' => 'Payment reference is required for this payment method.',
+                'errors' => [
+                    'payment_reference' => ['Payment reference is required for this payment method.'],
+                ],
+            ], 422);
+        }
 
         $userId = $request->user()?->id;
         if (! $userId) {
@@ -89,7 +100,9 @@ class CheckoutController extends Controller
                 $order = Order::query()->create([
                     'user_id' => $userId,
                     'order_number' => $orderNumber,
-                    'status' => 'paid',
+                    'status' => 'pending',
+                    'payment_status' => 'pending',
+                    'payment_method' => $validated['payment_method'],
                     'customer_name' => $validated['name'],
                     'customer_email' => $validated['email'],
                     'shipping_address' => $validated['address'],
@@ -118,17 +131,28 @@ class CheckoutController extends Controller
                     ]);
                 }
 
+                $provider = $validated['payment_method'];
+                $reference = null;
+                if ($validated['payment_method'] === 'cash') {
+                    $reference = null;
+                } else {
+                    $reference = $validated['payment_reference'] ?? null;
+                }
+
                 $payment = Payment::query()->create([
                     'order_id' => $order->id,
-                    'provider' => 'dummy',
-                    'status' => 'paid',
+                    'provider' => $provider,
+                    'status' => 'pending',
                     'amount' => $total,
                     'currency' => 'PHP',
-                    'reference' => 'DUMMY-' . Str::upper(Str::random(10)),
-                    'paid_at' => now(),
+                    'reference' => $reference,
+                    'paid_at' => null,
                     'raw_payload' => [
-                        'type' => 'dummy',
-                        'note' => 'Simulated payment for demo.',
+                        'type' => $validated['payment_method'],
+                        'note' => $validated['payment_method'] === 'cash'
+                            ? 'Cash payment on delivery.'
+                            : 'Payment awaiting verification.',
+                        'customer_reference' => $validated['payment_reference'] ?? null,
                     ],
                 ]);
 

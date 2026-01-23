@@ -59,6 +59,10 @@ export const useCartStore = defineStore('cart', {
                     quantity,
                 });
                 this.applyApiCart(data);
+                try {
+                    window.dispatchEvent(new Event('kukija:jar-bump'));
+                } catch {
+                }
             } catch (e) {
                 if (e?.response?.status === 401) {
                     this.lastError = e?.response?.data?.message || 'You must be logged in to start a jar.';
@@ -114,7 +118,7 @@ export const useCartStore = defineStore('cart', {
             }
         },
 
-        async checkout({ name, email, address, phone }) {
+        async checkout({ name, email, address, phone, payment_method, payment_reference }) {
             this.loading = true;
             this.lastError = null;
 
@@ -124,6 +128,8 @@ export const useCartStore = defineStore('cart', {
                     email,
                     address,
                     phone,
+                    payment_method,
+                    payment_reference,
                 });
 
                 await this.fetch();

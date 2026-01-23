@@ -22,16 +22,17 @@ export const useCustomerAuthStore = defineStore('customerAuth', {
             this.user = user;
         },
 
-        async register({ firstName, lastName, name, email, password, deviceName }) {
+        async register({ firstName, lastName, email, address, contactNo, password, deviceName }) {
             this.loading = true;
             this.lastError = null;
 
             try {
                 const { data } = await axios.post('auth/register', {
-                    first_name: firstName || null,
-                    last_name: lastName || null,
-                    name,
+                    first_name: firstName,
+                    last_name: lastName,
                     email,
+                    address,
+                    contact_no: contactNo,
                     password,
                     device_name: deviceName || 'storefront',
                 });
