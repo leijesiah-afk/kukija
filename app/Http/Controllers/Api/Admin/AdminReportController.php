@@ -24,7 +24,7 @@ class AdminReportController extends Controller
         ]);
 
         $period = $request->period ?? 'month';
-        
+
         // Determine date range
         switch ($period) {
             case 'day':
@@ -119,43 +119,49 @@ class AdminReportController extends Controller
 
         // Active customers (made at least one order)
         $activeCustomers = User::whereHas('orders', function ($query) use ($dateFrom, $dateTo) {
-                $query->whereBetween('created_at', [$dateFrom, $dateTo]);
-            })
+            $query->whereBetween('created_at', [$dateFrom, $dateTo]);
+        })
             ->count();
 
         // Customer segments
         $segments = [
             'high_value' => User::whereHas('orders', function ($query) use ($dateFrom, $dateTo) {
-                    $query->whereBetween('created_at', [$dateFrom, $dateTo])
-                          ->where('payment_status', 'paid');
-                })
-                ->withSum(['orders as total_spent' => function ($query) use ($dateFrom, $dateTo) {
-                    $query->whereBetween('created_at', [$dateFrom, $dateTo])
-                          ->where('payment_status', 'paid');
-                }], 'total')
-                ->having('total_spent', '>', 1000)
+                $query->whereBetween('created_at', [$dateFrom, $dateTo])
+                    ->where('payment_status', 'paid');
+            })
+                ->withSum([
+                    'orders as period_spent' => function ($query) use ($dateFrom, $dateTo) {
+                        $query->whereBetween('created_at', [$dateFrom, $dateTo])
+                            ->where('payment_status', 'paid');
+                    }
+                ], 'total')
+                ->having('period_spent', '>', 1000)
                 ->count(),
-            
+
             'medium_value' => User::whereHas('orders', function ($query) use ($dateFrom, $dateTo) {
-                    $query->whereBetween('created_at', [$dateFrom, $dateTo])
-                          ->where('payment_status', 'paid');
-                })
-                ->withSum(['orders as total_spent' => function ($query) use ($dateFrom, $dateTo) {
-                    $query->whereBetween('created_at', [$dateFrom, $dateTo])
-                          ->where('payment_status', 'paid');
-                }], 'total')
-                ->havingRaw('total_spent BETWEEN 500 AND 1000')
+                $query->whereBetween('created_at', [$dateFrom, $dateTo])
+                    ->where('payment_status', 'paid');
+            })
+                ->withSum([
+                    'orders as period_spent' => function ($query) use ($dateFrom, $dateTo) {
+                        $query->whereBetween('created_at', [$dateFrom, $dateTo])
+                            ->where('payment_status', 'paid');
+                    }
+                ], 'total')
+                ->havingRaw('period_spent BETWEEN 500 AND 1000')
                 ->count(),
-            
+
             'low_value' => User::whereHas('orders', function ($query) use ($dateFrom, $dateTo) {
-                    $query->whereBetween('created_at', [$dateFrom, $dateTo])
-                          ->where('payment_status', 'paid');
-                })
-                ->withSum(['orders as total_spent' => function ($query) use ($dateFrom, $dateTo) {
-                    $query->whereBetween('created_at', [$dateFrom, $dateTo])
-                          ->where('payment_status', 'paid');
-                }], 'total')
-                ->having('total_spent', '<', 500)
+                $query->whereBetween('created_at', [$dateFrom, $dateTo])
+                    ->where('payment_status', 'paid');
+            })
+                ->withSum([
+                    'orders as period_spent' => function ($query) use ($dateFrom, $dateTo) {
+                        $query->whereBetween('created_at', [$dateFrom, $dateTo])
+                            ->where('payment_status', 'paid');
+                    }
+                ], 'total')
+                ->having('period_spent', '<', 500)
                 ->count(),
         ];
 
@@ -218,7 +224,7 @@ class AdminReportController extends Controller
 
         // For now, we'll just return the data
         // In production, you'd generate actual CSV/PDF files
-        
+
         switch ($type) {
             case 'sales':
                 $data = $this->salesReport($request)->getData();
