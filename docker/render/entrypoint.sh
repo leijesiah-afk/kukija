@@ -8,7 +8,16 @@ sed -i "s/:80>/:${PORT_VALUE}>/" /etc/apache2/sites-available/000-default.conf
 
 cd /var/www/html
 
-mkdir -p storage bootstrap/cache
+mkdir -p \
+  storage \
+  storage/framework/cache \
+  storage/framework/cache/data \
+  storage/framework/sessions \
+  storage/framework/views \
+  storage/framework/testing \
+  storage/logs \
+  bootstrap/cache
+
 chown -R www-data:www-data storage bootstrap/cache || true
 chmod -R ug+rwx storage bootstrap/cache || true
 
