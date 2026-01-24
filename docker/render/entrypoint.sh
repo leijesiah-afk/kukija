@@ -21,6 +21,10 @@ if [ -z "${DB_CONNECTION:-}" ]; then
   export DB_CONNECTION=sqlite
 fi
 
+if [ -z "${LOG_CHANNEL:-}" ]; then
+  export LOG_CHANNEL=stderr
+fi
+
 if [ "${DB_CONNECTION}" = "sqlite" ]; then
   if [ ! -f database/database.sqlite ]; then
     mkdir -p database
@@ -28,6 +32,9 @@ if [ "${DB_CONNECTION}" = "sqlite" ]; then
     chown -R www-data:www-data database || true
   fi
 fi
+
+php artisan optimize:clear || true
+php artisan package:discover --ansi || true
 
 php artisan storage:link || true
 
