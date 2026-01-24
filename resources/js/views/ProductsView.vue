@@ -2,7 +2,7 @@
     <section>
         <section class="cookie-carousel-section">
             <div class="carousel-header" tabindex="0" @keydown.left.prevent="prevCookie" @keydown.right.prevent="nextCookie" @mouseenter="pauseCarousel" @mouseleave="resumeCarousel">
-                <button class="carousel-arrow" type="button" @click="prevCookie">&#8592;</button>
+                <button class="carousel-arrow prev" type="button" @click="prevCookie">&#8592;</button>
                 <div id="cookieDisplay">
                     <Transition name="best-seller" mode="out-in">
                         <div v-if="bestProduct" :key="bestProduct.id" style="display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap;">
@@ -35,7 +35,7 @@
                     </Transition>
                     <div v-if="!bestProduct" style="font-family:'Fredoka',cursive;color:var(--choco);">No best sellers available.</div>
                 </div>
-                <button class="carousel-arrow" type="button" @click="nextCookie">&#8594;</button>
+                <button class="carousel-arrow next" type="button" @click="nextCookie">&#8594;</button>
             </div>
             <div style="text-align:center;margin-top:18px;">
                 <span style="background:#7dbeff;border-radius:12px;padding:4px 18px;font-family:'Fredoka',cursive;font-size:1.1rem;color:#8B4513;box-shadow:0 2px 8px #d4a57433;">

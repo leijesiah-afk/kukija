@@ -1,6 +1,6 @@
 <template>
     <div>
-        <header class="header" :class="{ 'is-logged-in': !!customer.token }">
+        <header v-if="!isAdminRoute" class="header" :class="{ 'is-logged-in': !!customer.token }">
             <div class="header-content">
                 <RouterLink to="/" class="logo" style="display:block;">
                     <img :src="logoUrl" alt="Kukija Logo" class="logo logo-img" style="display:block;" />
@@ -8,7 +8,8 @@
 
                 <div class="header-actions">
                     <RouterLink to="/about" class="header-btn about-btn" title="About Us">About Us</RouterLink>
-                    <RouterLink to="/" class="header-btn subscribe-btn secondary" title="Subscribe">Subscribe</RouterLink>
+
+                    <RouterLink v-if="customer.token" to="/orders" class="header-btn" title="My Orders">My Orders</RouterLink>
 
                     <template v-if="customer.user">
                         <button class="header-btn" type="button" :disabled="customer.loading" @click="logoutCustomer">
@@ -28,11 +29,15 @@
             </div>
         </header>
 
+        <div v-if="toastVisible" class="kukija-toast" role="status" aria-live="polite">
+            {{ toastMessage }}
+        </div>
+
         <main class="main-content">
             <RouterView />
         </main>
 
-        <div id="kukijaLoginModal" class="modal-bg" @click.self="closeLogin">
+        <div v-if="!isAdminRoute" id="kukijaLoginModal" class="modal-bg" @click.self="closeLogin">
             <div class="modal">
                 <button class="close-modal" type="button" @click="closeLogin">×</button>
                 <h2>Log in</h2>
@@ -58,7 +63,7 @@
             </div>
         </div>
 
-        <div id="kukijaSignupModal" class="modal-bg" @click.self="closeSignup">
+        <div v-if="!isAdminRoute" id="kukijaSignupModal" class="modal-bg" @click.self="closeSignup">
             <div class="modal">
                 <button class="close-modal" type="button" @click="closeSignup">×</button>
                 <h2>Sign up</h2>
@@ -100,7 +105,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCustomerAuthStore } from './stores/customerAuth';
 import { useCartStore } from './stores/cart';
@@ -113,8 +118,27 @@ const cart = useCartStore();
 const route = useRoute();
 const router = useRouter();
 
+const isAdminRoute = computed(() => {
+    const p = String(route.path || '');
+    return p === '/admin' || p.startsWith('/admin/');
+});
+
 const openLoginHandler = () => openLogin();
 const openSignupHandler = () => openSignup();
+
+const toastVisible = ref(false);
+const toastMessage = ref('');
+let toastTimer = null;
+
+function showToast(message) {
+    toastMessage.value = message;
+    toastVisible.value = true;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toastVisible.value = false;
+    }, 1400);
+}
+
 const jarBumpHandler = () => {
     const $ = window.jQuery || window.$;
     if (!$) return;
@@ -127,6 +151,10 @@ const jarBumpHandler = () => {
             $btn.removeClass('jar-bump');
         }, 450);
     });
+
+    if (customer.token) {
+        showToast('Added to Jar');
+    }
 };
 const authUpdatedHandler = (event) => {
     const data = event?.detail;
@@ -180,6 +208,11 @@ onUnmounted(() => {
     window.removeEventListener('kukija:open-signup', openSignupHandler);
     window.removeEventListener('kukija:auth-updated', authUpdatedHandler);
     window.removeEventListener('kukija:jar-bump', jarBumpHandler);
+
+    if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+    }
 });
 
 function openLogin() {

@@ -1,7 +1,7 @@
 <template>
     <section style="max-width:520px;margin:52px auto 0 auto;padding:0 24px 72px 24px;">
         <div style="display:flex;justify-content:center;">
-            <img :src="logoUrl" alt="Kukija" class="logo logo-img" style="display:block;" />
+            <img :src="logoUrl" alt="Kukija" class="logo logo-img admin-logo-img" style="display:block;" />
         </div>
 
         <div class="product-card" style="margin-top:28px;align-items:stretch;padding:26px 22px;">
@@ -39,7 +39,9 @@ import { useAuthStore } from '../../stores/auth';
 const router = useRouter();
 const auth = useAuthStore();
 
-const logoUrl = '/kukija_legacy/logo.png';
+const baseUrl = import.meta.env.VITE_BASE_URL || '/';
+const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+const logoUrl = `${normalizedBase}logo.png`;
 
 const isDev = import.meta.env.DEV;
 

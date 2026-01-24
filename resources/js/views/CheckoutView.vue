@@ -131,9 +131,13 @@
 
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useCartStore } from '../stores/cart';
+import { useCustomerAuthStore } from '../stores/customerAuth';
 
 const cart = useCartStore();
+const router = useRouter();
+const customer = useCustomerAuthStore();
 
 const name = ref('');
 const email = ref('');
@@ -148,8 +152,33 @@ const checkoutValidHandler = () => {
     openConfirm();
 };
 
+function autofillFromProfile() {
+    const u = customer.user;
+    if (!u) return;
+
+    if (!name.value) {
+        name.value =
+            (u.name && String(u.name).trim()) ||
+            [u.first_name, u.last_name].filter(Boolean).join(' ').trim() ||
+            '';
+    }
+
+    if (!email.value && u.email) email.value = String(u.email);
+    if (!address.value && u.address) address.value = String(u.address);
+    if (!phone.value && (u.contact_no || u.contact_no === 0)) phone.value = String(u.contact_no);
+}
+
 onMounted(async () => {
     await cart.fetch();
+
+    try {
+        if (customer.token && !customer.user) {
+            await customer.fetchMe();
+        }
+    } catch {
+    }
+
+    autofillFromProfile();
     window.addEventListener('kukija:checkout-valid', checkoutValidHandler);
 });
 
@@ -168,7 +197,7 @@ function closeConfirm() {
 
 async function pay() {
     showConfirm.value = false;
-    paid.value = await cart.checkout({
+    const result = await cart.checkout({
         name: name.value,
         email: email.value,
         address: address.value,
@@ -176,6 +205,17 @@ async function pay() {
         payment_method: paymentMethod.value,
         payment_reference: paymentReference.value || null,
     });
+
+    paid.value = result;
+
+    try {
+        if (result?.order?.id) {
+            await router.push({ name: 'orders', query: { new: String(result.order.id) } });
+        } else {
+            await router.push({ name: 'orders' });
+        }
+    } catch {
+    }
 }
 
 function promptLogin() {

@@ -16,7 +16,7 @@ class AdminDashboardController extends Controller
 
         $salesToday = (float) Order::query()
             ->whereBetween('placed_at', [$todayStart, $todayEnd])
-            ->whereIn('status', ['paid', 'completed'])
+            ->where('payment_status', 'paid')
             ->sum('total');
 
         $ordersToday = (int) Order::query()

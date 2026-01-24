@@ -57,7 +57,7 @@
                             <tr v-for="o in orders" :key="o.id">
                                 <td>
                                     <div style="font-weight:800;">{{ o.order_number }}</div>
-                                    <div style="font-family:'Kalam',cursive;opacity:0.8;">{{ o.item_count || (o.items?.length ?? 0) }} items</div>
+                                    <div style="font-family:'Kalam',cursive;opacity:0.8;">{{ orderQty(o) }} qty</div>
                                 </td>
                                 <td>
                                     <div style="font-weight:800;">{{ o.customer_name }}</div>
@@ -176,6 +176,15 @@ function formatDate(value) {
     } catch {
         return String(value);
     }
+}
+
+function orderQty(order) {
+    if (typeof order?.total_qty === 'number') return order.total_qty;
+    if (typeof order?.total_qty === 'string' && order.total_qty !== '') return Number(order.total_qty) || 0;
+    if (Array.isArray(order?.items)) {
+        return order.items.reduce((sum, it) => sum + Number(it?.quantity || 0), 0);
+    }
+    return 0;
 }
 
 async function fetchOrders() {

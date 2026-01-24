@@ -52,6 +52,14 @@
                         <div class="product-title" style="text-align:left;">Avg Order</div>
                         <div class="product-price" style="margin-bottom:0;">₱{{ Number(sales.summary?.average_order_value || 0).toFixed(2) }}</div>
                     </div>
+                    <div v-if="sales.reviews" class="product-card legacy-admin-card">
+                        <div class="product-title" style="text-align:left;">Reviews</div>
+                        <div class="product-price" style="margin-bottom:0;">{{ sales.reviews?.summary?.total_reviews || 0 }}</div>
+                    </div>
+                    <div v-if="sales.reviews" class="product-card legacy-admin-card">
+                        <div class="product-title" style="text-align:left;">Avg Rating</div>
+                        <div class="product-price" style="margin-bottom:0;">{{ Number(sales.reviews?.summary?.average_rating || 0).toFixed(2) }}</div>
+                    </div>
                 </div>
 
                 <div class="product-title" style="text-align:left;margin-top:16px;">Top Products</div>
@@ -69,6 +77,26 @@
                                 <td style="font-weight:800;">{{ p.name }}</td>
                                 <td><span class="legacy-pill">{{ p.quantity_sold }}</span></td>
                                 <td><span class="legacy-pill">₱{{ Number(p.revenue || 0).toFixed(2) }}</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div v-if="sales.reviews" class="product-title" style="text-align:left;margin-top:16px;">Top Reviewed Products</div>
+                <div v-if="sales.reviews" class="legacy-table-wrap" style="margin-top:10px;">
+                    <table class="legacy-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Reviews</th>
+                                <th>Avg Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="p in (sales.reviews?.top_products || [])" :key="p.product_id">
+                                <td style="font-weight:800;">{{ p.name }}</td>
+                                <td><span class="legacy-pill">{{ p.reviews_count }}</span></td>
+                                <td><span class="legacy-pill">{{ Number(p.average_rating || 0).toFixed(2) }}</span></td>
                             </tr>
                         </tbody>
                     </table>

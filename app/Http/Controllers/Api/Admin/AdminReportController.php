@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\Product;
-use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AdminReportController extends Controller
 {
@@ -90,6 +90,34 @@ class AdminReportController extends Controller
             ->orderBy('revenue', 'desc')
             ->get();
 
+        $reviews = null;
+        if (Schema::hasTable('reviews')) {
+            $reviewsSummary = DB::table('reviews')
+                ->whereBetween('created_at', [$dateFrom, $dateTo])
+                ->selectRaw('COUNT(*) as total_reviews, AVG(rating) as average_rating')
+                ->first();
+
+            $topReviewedProducts = DB::table('reviews')
+                ->join('products', 'reviews.product_id', '=', 'products.id')
+                ->whereBetween('reviews.created_at', [$dateFrom, $dateTo])
+                ->select(
+                    'products.id as product_id',
+                    'products.name',
+                    'products.image_path',
+                    DB::raw('COUNT(*) as reviews_count'),
+                    DB::raw('AVG(reviews.rating) as average_rating')
+                )
+                ->groupBy('products.id', 'products.name', 'products.image_path')
+                ->orderBy('reviews_count', 'desc')
+                ->limit(10)
+                ->get();
+
+            $reviews = [
+                'summary' => $reviewsSummary,
+                'top_products' => $topReviewedProducts,
+            ];
+        }
+
         return response()->json([
             'period' => $period,
             'date_from' => $dateFrom,
@@ -97,6 +125,7 @@ class AdminReportController extends Controller
             'summary' => $summary,
             'sales_by_day' => $salesByDay,
             'sales_by_product' => $salesByProduct,
+            'reviews' => $reviews,
         ]);
     }
 
@@ -179,33 +208,63 @@ class AdminReportController extends Controller
      */
     public function inventoryReport()
     {
-        $inventory = Inventory::with('product')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'product_id' => $item->product_id,
-                    'product_name' => $item->product->name,
-                    'product_image' => $item->product->image_path,
-                    'stock_quantity' => $item->stock_quantity,
-                    'reorder_level' => $item->reorder_level,
-                    'is_low_stock' => $item->isLowStock(),
-                    'is_out_of_stock' => $item->isOutOfStock(),
-                    'last_restocked_at' => $item->last_restocked_at,
-                ];
-            });
+        $defaultReorderLevel = 10;
+
+        $query = DB::table('products')
+            ->select([
+                'products.id as product_id',
+                'products.name as product_name',
+                'products.image_path as product_image',
+                'products.stock as stock_quantity',
+                'products.price as unit_price',
+            ]);
+
+        if (Schema::hasTable('inventories')) {
+            $query
+                ->leftJoin('inventories', 'inventories.product_id', '=', 'products.id')
+                ->addSelect(DB::raw('COALESCE(inventories.reorder_level, '.$defaultReorderLevel.') as reorder_level'))
+                ->addSelect('inventories.last_restocked_at as last_restocked_at');
+        } else {
+            $query
+                ->addSelect(DB::raw($defaultReorderLevel.' as reorder_level'))
+                ->addSelect(DB::raw('NULL as last_restocked_at'));
+        }
+
+        $inventory = collect($query->get())->map(function ($row) {
+            $stock = (int) ($row->stock_quantity ?? 0);
+            $reorderLevel = (int) ($row->reorder_level ?? 0);
+
+            $isOutOfStock = $stock <= 0;
+            $isLowStock = (! $isOutOfStock) && $stock <= $reorderLevel;
+
+            return [
+                'product_id' => $row->product_id,
+                'product_name' => $row->product_name,
+                'product_image' => $row->product_image,
+                'stock_quantity' => $stock,
+                'reorder_level' => $reorderLevel,
+                'is_low_stock' => $isLowStock,
+                'is_out_of_stock' => $isOutOfStock,
+                'last_restocked_at' => $row->last_restocked_at,
+                'unit_price' => (float) ($row->unit_price ?? 0),
+            ];
+        });
 
         $summary = [
             'total_products' => $inventory->count(),
             'low_stock_products' => $inventory->where('is_low_stock', true)->count(),
             'out_of_stock_products' => $inventory->where('is_out_of_stock', true)->count(),
             'total_stock_value' => $inventory->sum(function ($item) {
-                return $item['stock_quantity'] * Product::find($item['product_id'])->price;
+                return ((int) ($item['stock_quantity'] ?? 0)) * ((float) ($item['unit_price'] ?? 0));
             }),
         ];
 
         return response()->json([
             'summary' => $summary,
-            'inventory' => $inventory,
+            'inventory' => $inventory->map(function ($row) {
+                unset($row['unit_price']);
+                return $row;
+            })->values(),
         ]);
     }
 

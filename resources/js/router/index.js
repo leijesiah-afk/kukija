@@ -5,6 +5,7 @@ import CartView from '../views/CartView.vue';
 import CheckoutView from '../views/CheckoutView.vue';
 import ProductDetailView from '../views/ProductDetailView.vue';
 import AboutView from '../views/AboutView.vue';
+import MyOrdersView from '../views/MyOrdersView.vue';
 import AdminLayout from '../views/admin/AdminLayout.vue';
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue';
 import AdminLoginView from '../views/admin/AdminLoginView.vue';
@@ -25,6 +26,7 @@ const router = createRouter({
         { path: '/jar', name: 'jar', component: CartView },
         { path: '/cart', name: 'cart', component: CartView },
         { path: '/checkout', name: 'checkout', component: CheckoutView },
+        { path: '/orders', name: 'orders', component: MyOrdersView },
         { path: '/admin/login', name: 'admin.login', component: AdminLoginView },
         {
             path: '/admin',
@@ -42,7 +44,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
-    if (to.name === 'jar' || to.name === 'cart' || to.name === 'checkout') {
+    if (to.name === 'jar' || to.name === 'cart' || to.name === 'checkout' || to.name === 'orders') {
         const token = localStorage.getItem('kukija_customer_token');
         if (!token) {
             return { name: 'home', query: { auth: 'login', reason: 'jar' } };

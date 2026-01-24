@@ -17,7 +17,8 @@ class AdminOrderController extends Controller
     {
         $query = Order::with(['user', 'items.product', 'payment'])
             ->select('orders.*')
-            ->selectRaw('(SELECT COUNT(*) FROM order_items WHERE order_items.order_id = orders.id) as item_count');
+            ->selectRaw('(SELECT COUNT(*) FROM order_items WHERE order_items.order_id = orders.id) as item_count')
+            ->selectRaw('(SELECT COALESCE(SUM(quantity), 0) FROM order_items WHERE order_items.order_id = orders.id) as total_qty');
 
         // Filter by status
         if ($request->has('status') && $request->status !== '') {
@@ -79,16 +80,51 @@ class AdminOrderController extends Controller
         $oldStatus = $order->status;
         $oldPaymentStatus = $order->payment_status;
 
+        $newStatus = $request->status;
+        $currentStatus = $oldStatus ?: 'pending';
+
+        $paymentStatus = $request->has('payment_status')
+            ? $request->payment_status
+            : $order->payment_status;
+
+        if ($newStatus === 'delivered' && ! $request->has('payment_status') && $paymentStatus === 'pending') {
+            $paymentStatus = 'paid';
+        }
+
+        $allowedTransitions = [
+            'pending' => ['pending', 'processing', 'shipped', 'cancelled'],
+            'processing' => ['processing', 'shipped', 'cancelled'],
+            'shipped' => ['shipped', 'delivered'],
+            'delivered' => ['delivered'],
+            'cancelled' => ['cancelled'],
+        ];
+
+        if (! isset($allowedTransitions[$currentStatus]) || ! in_array($newStatus, $allowedTransitions[$currentStatus], true)) {
+            return response()->json([
+                'message' => 'Invalid status transition.',
+            ], 422);
+        }
+
         $order->update([
-            'status' => $request->status,
-            'payment_status' => $request->payment_status ?? $order->payment_status,
+            'status' => $newStatus,
+            'payment_status' => $paymentStatus,
         ]);
+
+        if ($paymentStatus === 'paid') {
+            $order->loadMissing('payment');
+            if ($order->payment) {
+                $order->payment->update([
+                    'status' => 'paid',
+                    'paid_at' => $order->payment->paid_at ?: now(),
+                ]);
+            }
+        }
 
         // Log activity
         ActivityLog::create([
             'admin_user_id' => $request->user()->id,
             'action_type' => 'order_update',
-            'description' => "Updated order #{$order->order_number} status from {$oldStatus} to {$request->status}",
+            'description' => "Updated order #{$order->order_number} status from {$oldStatus} to {$newStatus}",
             'ip_address' => $request->ip(),
         ]);
 

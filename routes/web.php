@@ -27,6 +27,11 @@ if ($basePath !== '') {
             Route::delete('/jar/items/{id}', [\App\Http\Controllers\Api\CartController::class, 'removeItem']);
 
             Route::post('/checkout', [\App\Http\Controllers\Api\CheckoutController::class, 'store']);
+
+            Route::get('/orders', [\App\Http\Controllers\Api\OrderController::class, 'index']);
+            Route::patch('/orders/{id}/received', [\App\Http\Controllers\Api\OrderController::class, 'markReceived']);
+
+            Route::post('/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
         });
 
         Route::prefix('auth')->group(function () {
@@ -72,5 +77,10 @@ if ($basePath !== '') {
     });
 }
 
+$excludedPrefixes = ['api'];
+if ($basePath !== '') {
+    $excludedPrefixes[] = preg_quote($basePath, '#') . '/api';
+}
+
 Route::view('/{any?}', 'app')
-    ->where('any', '^(?!api(?:/|$)).*');
+    ->where('any', '^(?!(?:' . implode('|', $excludedPrefixes) . ')(?:/|$)).*');

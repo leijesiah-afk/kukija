@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CheckoutController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Admin\AdminAuthController;
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
@@ -33,6 +35,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/jar/items/{id}', [CartController::class, 'removeItem']);
 
     Route::post('/checkout', [CheckoutController::class, 'store']);
+
+    // Customer orders
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::patch('/orders/{id}/received', [OrderController::class, 'markReceived']);
+
+    // Reviews
+    Route::post('/reviews', [ReviewController::class, 'store']);
 });
 
 Route::prefix('auth')->group(function () {

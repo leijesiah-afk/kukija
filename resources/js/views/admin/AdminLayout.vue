@@ -3,11 +3,10 @@
         <header class="header">
             <div class="header-content">
                 <RouterLink to="/admin" class="logo" style="display:block;">
-                    <img :src="logoUrl" alt="Kukija" class="logo logo-img" style="display:block;" />
+                    <img :src="logoUrl" alt="Kukija" class="logo logo-img admin-logo-img" style="display:block;" />
                 </RouterLink>
 
                 <nav class="header-actions" style="flex-wrap:wrap; justify-content:flex-end;">
-                    <RouterLink to="/" class="header-btn" title="Storefront">Storefront</RouterLink>
                     <RouterLink to="/admin" class="header-btn" title="Dashboard">Dashboard</RouterLink>
                     <RouterLink to="/admin/products" class="header-btn" title="Products">Products</RouterLink>
                     <RouterLink to="/admin/orders" class="header-btn" title="Orders">Orders</RouterLink>
@@ -31,7 +30,9 @@ import { useAuthStore } from '../../stores/auth';
 
 const router = useRouter();
 const auth = useAuthStore();
-const logoUrl = '/kukija_legacy/logo.png';
+const baseUrl = import.meta.env.VITE_BASE_URL || '/';
+const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+const logoUrl = `${normalizedBase}logo.png`;
 
 onMounted(async () => {
     if (!auth.token) {
