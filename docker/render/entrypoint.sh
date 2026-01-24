@@ -56,4 +56,8 @@ else
   php artisan migrate --force || true
 fi
 
+if [ "${RUN_SEED:-}" = "true" ]; then
+  php artisan db:seed --force || true
+fi
+
 exec "$@"
