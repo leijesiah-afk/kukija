@@ -34,6 +34,10 @@ if [ -z "${LOG_CHANNEL:-}" ]; then
   export LOG_CHANNEL=stderr
 fi
 
+if [ -z "${CACHE_STORE:-}" ]; then
+  export CACHE_STORE=file
+fi
+
 if [ "${DB_CONNECTION}" = "sqlite" ]; then
   if [ ! -f database/database.sqlite ]; then
     mkdir -p database
@@ -44,8 +48,6 @@ fi
 
 php artisan optimize:clear || true
 php artisan package:discover --ansi || true
-
-php artisan storage:link || true
 
 if [ "${DB_CONNECTION}" = "mysql" ]; then
   echo "Checking MySQL connectivity..."
@@ -59,5 +61,7 @@ fi
 if [ "${RUN_SEED:-}" = "true" ]; then
   php artisan db:seed --force || true
 fi
+
+php artisan storage:link || true
 
 exec "$@"
