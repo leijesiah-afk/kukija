@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class AdminOrderController extends Controller
 {
@@ -87,6 +88,10 @@ class AdminOrderController extends Controller
             ? $request->payment_status
             : $order->payment_status;
 
+        if ($paymentStatus === null || $paymentStatus === '') {
+            $paymentStatus = 'pending';
+        }
+
         if ($newStatus === 'delivered' && ! $request->has('payment_status') && $paymentStatus === 'pending') {
             $paymentStatus = 'paid';
         }
@@ -121,12 +126,15 @@ class AdminOrderController extends Controller
         }
 
         // Log activity
-        ActivityLog::create([
-            'admin_user_id' => $request->user()->id,
-            'action_type' => 'order_update',
-            'description' => "Updated order #{$order->order_number} status from {$oldStatus} to {$newStatus}",
-            'ip_address' => $request->ip(),
-        ]);
+        try {
+            ActivityLog::create([
+                'admin_user_id' => $request->user()?->id,
+                'action_type' => 'order_update',
+                'description' => "Updated order #{$order->order_number} status from {$oldStatus} to {$newStatus}",
+                'ip_address' => $request->ip(),
+            ]);
+        } catch (Throwable) {
+        }
 
         return response()->json([
             'message' => 'Order updated successfully',

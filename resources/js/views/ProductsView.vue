@@ -215,14 +215,23 @@ async function fetchBestSellers() {
             },
         });
 
-        const list = data?.data;
-        if (Array.isArray(list)) {
-            bestProducts.value = list;
-            if (carouselIndex.value >= list.length) {
-                carouselIndex.value = 0;
+        let list = Array.isArray(data?.data) ? data.data : [];
+
+        if (list.length < 2) {
+            const fallback = await axios.get('products', {
+                params: {
+                    per_page: 50,
+                },
+            });
+            const fallbackList = fallback?.data?.data;
+            if (Array.isArray(fallbackList) && fallbackList.length) {
+                list = fallbackList;
             }
-        } else {
-            bestProducts.value = [];
+        }
+
+        bestProducts.value = list;
+        if (carouselIndex.value >= list.length) {
+            carouselIndex.value = 0;
         }
     } catch {
         bestProducts.value = [];
